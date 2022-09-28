@@ -361,7 +361,8 @@ class json_base:
                sender=None,
                Nchild=-1,
                reply_msg_ID=None,
-               accumulate=False):
+               accumulate=False,
+               cc=[]):
 
         dest = map(lambda i: i, who)
         if actors:
@@ -397,7 +398,7 @@ class json_base:
         # be sure to not have duplicates
         dest = set(dest)
         exclude_emails = set(settings.get_value('exclude_from_notify'))
-        dest = list(dest - exclude_emails)
+        dest = list(dest - exclude_emails - set(cc)) # Exclude from destination the Cc. They will be notified by Cc
         if not len(dest):
             dest.append(settings.get_value('service_account'))
             subject += '. And no destination was set'
@@ -413,7 +414,8 @@ class json_base:
                                  message,
                                  sender,
                                  reply_msg_ID,
-                                 accumulate=accumulate)
+                                 accumulate=accumulate,
+                                 cc=cc)
 
     def correct_types(self):
         for key in self.__schema:

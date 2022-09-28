@@ -57,7 +57,8 @@ class communicator:
                  text,
                  sender=None,
                  reply_msg_ID=None,
-                 accumulate=False):
+                 accumulate=False,
+                 cc=[]):
 
         if not isinstance(destination, list):
             print "Cannot send email. destination should be a list of strings"
@@ -80,7 +81,13 @@ class communicator:
         msg['To'] = COMMASPACE.join(destination)
         msg['Date'] = formatdate(localtime=True)
         destination.append('pdmvserv@cern.ch')
-        msg['Cc'] = 'pdmvserv@cern.ch'
+
+        # Cc forward
+        cc_forward = ["pdmvserv@cern.ch"]
+        if not locator().isDev(): # Only forward Cc in production
+            cc_forward = ["pdmvserv@cern.ch"] + cc
+
+        msg['Cc'] = COMMASPACE.join(cc_forward)
         new_msg_ID = make_msgid()
         msg['Message-ID'] = new_msg_ID
 

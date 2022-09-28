@@ -502,6 +502,7 @@ class ValidationControl():
         # Check log output
         log_file, out_file, err_file = self.read_output_files(validation_name, threads)
         if self.removed_due_to_exceeded_walltime(log_file):
+            # Walltime error
             self.logger.error('Job was removed due to exceeded walltime')
             self.validation_failed(validation_name)
             self.notify_validation_failed(validation_name,
@@ -517,6 +518,7 @@ class ValidationControl():
         exit_code = self.validation_exit_code(log_file)
         self.logger.info('Validation exit code: %s', exit_code)
         if exit_code != 0:
+            # Fatal error in validation job
             self.logger.error('Validation failed because it exited with code %s', exit_code)
             self.validation_failed(validation_name)
             self.notify_validation_failed(validation_name,
@@ -526,7 +528,8 @@ class ValidationControl():
                                           'Job log output:\n\n%s' % (exit_code,
                                                                      ''.join(out_file),
                                                                      ''.join(err_file),
-                                                                     ''.join(log_file)))
+                                                                     ''.join(log_file)),
+                                          type_error="JOB")
             return False
 
         # Get reports
@@ -557,7 +560,8 @@ class ValidationControl():
                                                   ''.join(out_file),
                                                   ''.join(err_file),
                                                   ''.join(log_file),
-                                                  report_text))
+                                                  report_text),
+                                          type_error="REPORT")
 
 
             return False
@@ -666,7 +670,15 @@ class ValidationControl():
         self.storage.save(validation_name, storage_item)
         return True
 
-    def notify_validation_failed(self, validation_name, message):
+    def notify_validation_failed(self, validation_name, message, type_error=None):
+        """
+        Notifies by email to the users who interacted with the request that validation failed.
+        Sometimes we need to forward to a specific role some kind of errors. Like fatal error
+        from validation execution or generation report error.
+
+        At this moment, the only valid values for the special type of error, flag which helps to put with Cc
+        some users, are JOB (for fatal job errors) and REPORT (errors creating the report)
+        """
         if '-chain_' in validation_name:
             item = self.chained_request_db.get(validation_name)
             if not item:
@@ -684,7 +696,16 @@ class ValidationControl():
         subject = 'Validation failed for %s' % (validation_name)
         message = 'Hello,\n\nUnfortunatelly %s validation failed.\n%s' % (validation_name, message.decode('utf-8'))
         message = re.sub(r'[^\x00-\x7f]', '?', message)
-        item.notify(subject, message)
+
+        # Check if the error we want to notify is a fatal error or report error
+        if type_error in ["JOB", "REPORT"]:
+            users_db = database('users')
+            production_managers = users_db.search({'role': 'production_manager'}, page=-1)
+            production_managers_emails = [p['email'] for p in production_managers]
+            subject = '[%s] Validation failed for %s' % (type_error, validation_name)
+            item.notify(subject, message, cc=production_managers_emails)
+        else:
+            item.notify(subject, message)
 
     def notify_validation_suceeded(self, validation_name):
         if '-chain_' in validation_name:
