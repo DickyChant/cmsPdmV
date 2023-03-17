@@ -1,0 +1,26 @@
+# Ignore all Python cache folders
+__pycache__/
+*.pyc
+
+# Ignore .pid files
+*.pid
+
+# Ignore Grunt build
+scripts/build/
+
+# Ignore venv
+venv/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore package-lock.json
+package-lock.json
+
+# Ignore bash scripts
+*.sh
+
+# Ignore Pylint
+.pylintrc
+
+# Ignore logs
