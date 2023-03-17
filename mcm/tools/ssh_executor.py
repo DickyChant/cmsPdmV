@@ -3,6 +3,7 @@ import time
 import logging
 import random
 import os
+import json
 import tools.settings as settings
 from tools.logger import InjectionLogAdapter
 from threading import BoundedSemaphore
@@ -61,29 +62,14 @@ class ssh_executor:
 
     def __get_ssh_credentials(self):
         try:
-            f = open(self.ssh_credentials, 'r')
-            data = f.readlines()
-            f.close()
+            with open(self.ssh_credentials, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                username = data['username']
+                password = data['password']
+                return username, password
         except IOError as ex:
             self.error_logger.error('Could not access credential file. IOError: %s' % ex)
             return None, None
-
-        username, password = None, None
-        for line in data:
-            if 'username:' in line:
-                toks = line.split(':')
-                if len(toks) < 2:
-                    self.logger.error('Username was None')
-                    raise paramiko.AuthenticationException('Username not found.')
-                username = toks[1].strip()
-            elif 'password' in line:
-                toks = line.split(':')
-                if len(toks) < 2:
-                    self.logger.error('Password was None')
-                    raise paramiko.AuthenticationException('Password not found.')
-                password = toks[1].strip()
-
-        return username, password
 
     def __remote_exec(self, cmd=''):
         if not cmd:
