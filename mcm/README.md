@@ -9,12 +9,15 @@ Environment variables
 - CRED_FILE: Path to a JSON file with the service account credentials to open SSH connections
              Required keys: {"username": <USERNAME>, "password": <PASSWORD>}
 - PRODUCTION: "True" if it is required to deploy the application as production environment
+- OIDC_CLIENT_ID: Application client identifier. Retrieve this value from CERN application portal
+- OIDC_CLIENT_SECRET: Application client secret. Retrieve this value from CERN application portal
 
 Optional environment variables
 -------------------------------
 The following environment variables allow the user to override some default configurations
 available inside the tools/locator.py file
 
+- SECRET_KEY: Flask secret key. If not provided, the application will generate a new value
 - COUCH_DATABASE_URL: Access URL to CouchDB
 - LUCENE_URL: Access URL to Lucene engine for querying CouchDB
 - BASE_URL: Application access URL. This is mainly used for components which send emails and notifications

@@ -7,7 +7,7 @@ from collections import defaultdict
 from tools.locker import locker
 from couchdb_layer.mcm_database import database
 from tools.enum import Enum
-from flask import request, has_request_context
+from flask import session, has_request_context
 from cachelib import SimpleCache
 
 
@@ -44,7 +44,7 @@ class user_pack:
         """
         if not has_request_context():
             return defaultdict(lambda: None)
-        user_dict = defaultdict(lambda: None, [(key.lower().replace('-', '_'), value) if not key.lower().startswith('adfs-') else (key.lower()[5:], value) for (key, value) in request.headers.items()])
+        user_dict = session.get('user', {})
         return user_dict
 
     def __getattr__(self, name):
@@ -54,24 +54,19 @@ class user_pack:
             return self.user_dict[name]
 
     def get_username(self):
-        return self.user_dict['login']
+        return self.user_dict.get('username')
 
     def get_email(self):
         return self.email if self.email else self.remote_user
 
     def get_name(self):
-        return self.user_dict.get('firstname')
+        return self.user_dict.get('given_name')
 
     def get_surname(self):
-        return self.user_dict.get('lastname')
+        return self.user_dict.get('family_name')
 
     def get_fullname(self):
-        first_name = self.get_name()
-        last_name = self.get_surname()
-        if first_name and last_name:
-            return '%s %s' % (first_name, last_name)
-        else:
-            return None
+        return self.user_dict.get('fullname')
 
     @classmethod
     def cache_size(cls):

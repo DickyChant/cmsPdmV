@@ -17,8 +17,12 @@ from rest_api.ListActions import GetList, UpdateList
 from json_layer.sequence import sequence  # to get campaign sequences
 from tools.communicator import communicator
 from tools.logger import UserFilter
+from tools.locator import locator as Locator
+from middlewares.auth import AuthenticationMiddleware
 from flask_restful import Api
-from flask import Flask, send_from_directory, request, g
+from flask import Flask, send_from_directory, request, session, g
+from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import json
 import signal
@@ -38,6 +42,20 @@ app.url_map.strict_slashes = False
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
 # Set paramiko logging to warning
 logging.getLogger('paramiko').setLevel(logging.WARNING)
+
+# Enable CORS
+CORS(
+    app,
+    allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+    supports_credentials=True,
+)
+
+# Handle redirections from a reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# We require some environment variables to configure properly this component
+auth: AuthenticationMiddleware = None
+app.before_request(lambda: auth(request=request, session=session))
 
 
 @app.route('/campaigns')
@@ -529,12 +547,33 @@ def setup_access_logging(app, logger, debug):
 
 
 def set_app(debug: bool = True):
+    global auth
+
     # Setup loggers
     logging.root.setLevel(logging.DEBUG if debug else logging.INFO)
     error_logger = setup_error_logger(debug)
     setup_injection_logger(debug)
     access_logger = setup_access_logger(debug)
     setup_access_logging(app, access_logger, debug)
+
+    # Instantiate the middleware
+    locator = Locator()
+    client_id, client_secret = locator.retrieve_oidc_credentials()
+
+    root_logger = logging.getLogger()
+    root_logger.info('Creating authentication middleware')
+    root_logger.info('Client ID: %s', client_id)
+    secret_msg = "****" if client_secret else "Not secret provided"
+    root_logger.info('Client secret: %s', secret_msg)
+
+    # Set Flask secret key
+    app.secret_key = locator.flask_secret_key()
+    auth = AuthenticationMiddleware(
+        app=app,
+        client_id=client_id,
+        client_secret=client_secret,
+        home_endpoint="index_html"
+    )
     return app, error_logger, access_logger
 
 

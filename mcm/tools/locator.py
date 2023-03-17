@@ -1,5 +1,6 @@
 import os
-
+import logging
+import secrets
 
 class locator:
     def __init__(self):
@@ -49,3 +50,27 @@ class locator:
             return 'https://cmsweb-testbed.cern.ch/'
         else:
             return 'https://cmsweb.cern.ch/'
+
+    def retrieve_oidc_credentials(self):
+        """
+        Retrieve OAuth credentials from environment variables.
+        This credentials are required to authenticate users
+        to CERN Keycloak Single Sign On.
+
+        Returns:
+            client_id: str
+                OAuth2 client id
+            client_secret: str
+                OAuth2 client secret
+        """
+        client_id = os.getenv('OIDC_CLIENT_ID', '')
+        client_secret = os.getenv('OIDC_CLIENT_SECRET', '')
+        return client_id, client_secret
+
+    def flask_secret_key(self):
+        secret_key = os.getenv('SECRET_KEY')
+        if not secret_key:
+            logger = logging.getLogger()
+            logger.warning('No SECRET_KEY environment variable found. The application will create a random key.')
+            secret_key = secrets.token_hex()
+        return secret_key
