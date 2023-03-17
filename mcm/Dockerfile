@@ -37,6 +37,7 @@ RUN apt update && apt install -y git
 RUN groupadd -g 999 python && useradd -r -u 999 -g python python
 
 RUN mkdir /usr/app && chown python:python /usr/app
+RUN mkdir -p /usr/app/logs && chown python:python /usr/app/logs
 WORKDIR /usr/app
 
 COPY --chown=python:python . .
