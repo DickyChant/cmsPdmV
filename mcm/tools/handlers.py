@@ -178,8 +178,8 @@ class SubmissionsBase(Handler):
                 self.inject_logger.info('Command used for injecting requests %s: %s' % (self.prepid, cmd))
                 # modify here to have the command to be executed
                 _, stdout, stderr = ssh.execute(cmd)
-                output = stdout.read()
-                error = stderr.read()
+                output = stdout.read().decode('utf-8')
+                error = stderr.read().decode('utf-8')
                 if error:
                     self.inject_logger.error('Error while injecting %s. %s' % (self.prepid, error))
                     if '.bashrc: Permission denied' in error:
@@ -528,8 +528,8 @@ class RequestApprover(Handler):
                     if not stdout and not stderr:
                         self.logger.error('ssh error for request approvals, batch id: ' + self.batch_id)
                         return
-                    output = stdout.read()
-                    error = stderr.read()
+                    output = stdout.read().decode('utf-8')
+                    error = stderr.read().decode('utf-8')
 
                 self.logger.info('Wmapprove output: %s' % output)
                 if not error and 'Something went wrong' not in output:

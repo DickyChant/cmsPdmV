@@ -2687,8 +2687,8 @@ class request(json_base):
                                 self.test_failure('SSH error for request {0}. Could not retrieve outputs.'.format(prepid),
                                                 what='Configuration upload')
                                 return False
-                            output = stdout.read()
-                            error = stderr.read()
+                            output = stdout.read().decode('utf-8')
+                            error = stderr.read().decode('utf-8')
 
                         if error and not output:  # money on the table that it will break
                             self.logger.error('Error in wmupload: {0}'.format(error))
