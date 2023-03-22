@@ -68,7 +68,7 @@ class campaign(json_base):
         return cds
 
     def add_request(self, req_json):
-        from request import request
+        from json_layer.request import request
         req = request(json_input=req_json)
         req.transfer_from(self)
         return req.json()
