@@ -32,7 +32,7 @@ RUN pip install -r requirements.txt
 # Create image for deployment
 FROM python:3.11.2-slim-buster@sha256:8f827e9cc31e70c5bdbed516d7d6627b10afad9b837395ac19315685d13b40c2 AS backend
 
-RUN apt update && apt install -y git
+RUN apt update && apt install -y git && apt install -y curl
 
 RUN groupadd -g 999 python && useradd -r -u 999 -g python python
 
