@@ -2763,7 +2763,7 @@ class request(json_base):
         return int(num)
 
     def get_list_of_steps(self, in_string):
-        if isinstance(in_string, basestring):
+        if isinstance(in_string, str):
             # in case sequence is defined as string -> legacy support
             return [el.split(":")[0] for el in in_string.split(",")]
         else:

@@ -5,31 +5,31 @@ from tools.utils import expand_range
 
 class mccm(json_base):
     _json_base__schema = {
-        '_id': '',
-        'prepid': '',
-        'block': 0,
-        'threshold': 0.,
-        'meeting': '',
-        'history': [],
-        'notes': '',
-        'pwg': '',
-        'requests': [],
-        'chains': [],
-        'tags': [],
-        'repetitions': 1,
-        'status': 'new',
-        'generated_chains': {},
-        'total_events': 0  # Sum of request events in ticket not considering repetitions nor chains
+        "_id": "",
+        "prepid": "",
+        "block": 0,
+        "threshold": 0.0,
+        "meeting": "",
+        "history": [],
+        "notes": "",
+        "pwg": "",
+        "requests": [],
+        "chains": [],
+        "tags": [],
+        "repetitions": 1,
+        "status": "new",
+        "generated_chains": {},
+        "total_events": 0,  # Sum of request events in ticket not considering repetitions nor chains
     }
 
-    _json_base__status = ['new', 'done']
+    _json_base__status = ["new", "done"]
 
     def __init__(self, json_input=None):
         json_input = json_input if json_input else {}
-        repetitions = int(json_input.get('repetitions', 1))
+        repetitions = int(json_input.get("repetitions", 1))
         if repetitions > 10:
-            self.logger.error('Too many repetitions: %s', repetitions)
-            raise Exception('Too many repetitions: %s' % (repetitions))
+            self.logger.error("Too many repetitions: %s", repetitions)
+            raise Exception("Too many repetitions: %s" % (repetitions))
 
         self.update(json_input)
         self.validate()
@@ -43,18 +43,28 @@ class mccm(json_base):
         """
         import datetime
         import tools.settings as settings
+
         today = datetime.date.today()
-        meeting_day = int(settings.get_value('mccm_meeting_day'))
+        meeting_day = int(settings.get_value("mccm_meeting_day"))
         weeks = 0 if meeting_day >= today.weekday() else 1
-        today = today + datetime.timedelta(days=meeting_day - today.weekday(), weeks=weeks)
+        today = today + datetime.timedelta(
+            days=meeting_day - today.weekday(), weeks=weeks
+        )
         return today
 
     def get_editable(self):
         editable = {}
         schema = self._json_base__schema
-        if self.get_attribute('status') == 'new':
-            not_editable = {"status", "prepid", "meeting", "pwg",
-                            "approval", "message_id", "generated_chains"}
+        if self.get_attribute("status") == "new":
+            not_editable = {
+                "status",
+                "prepid",
+                "meeting",
+                "pwg",
+                "approval",
+                "message_id",
+                "generated_chains",
+            }
             for key in schema:
                 editable[key] = bool(key not in not_editable)
 
@@ -66,19 +76,19 @@ class mccm(json_base):
 
     @staticmethod
     def get_mccm_by_generated_chain(chain_id):
-        mccms_db = Database('mccms')
-        result = mccms_db.search({'generated_chains': chain_id})
+        mccms_db = Database("mccms")
+        result = mccms_db.search({"generated_chains": chain_id})
         if result and result[0]:
             return mccm(json_input=result[0])
 
         return None
 
     def update_mccm_generated_chains(self, chains_requests_dict):
-        generated_chains = self.get_attribute('generated_chains')
+        generated_chains = self.get_attribute("generated_chains")
         for chain, requests in chains_requests_dict.items():
             generated_chains.setdefault(chain, []).extend(requests)
 
-        mccms_db = Database('mccms')
+        mccms_db = Database("mccms")
         mccms_db.save(self.json())
 
     def get_request_list(self):
@@ -90,10 +100,12 @@ class mccm(json_base):
         for entry in request_list:
             if isinstance(entry, list) and len(entry) == 2:
                 requests.extend(expand_range(entry[0], entry[1]))
-            elif isinstance(entry, (basestring, str)):
+            elif isinstance(entry, str):
                 requests.append(entry)
             else:
-                raise Exception('Unrecognized prepid/range %s of type', entry, type(entry))
+                raise Exception(
+                    "Unrecognized prepid/range %s of type", entry, type(entry)
+                )
 
         return requests
 
@@ -111,22 +123,22 @@ class mccm(json_base):
         """
         Calculate total events of requests
         """
-        requests_db = Database('requests')
+        requests_db = Database("requests")
         prepids = self.get_request_list()
         requests = requests_db.bulk_get(prepids)
-        events = sum(max(0, r.get('total_events', 0)) for r in requests)
-        self.set_attribute('total_events', events)
+        events = sum(max(0, r.get("total_events", 0)) for r in requests)
+        self.set_attribute("total_events", events)
 
     def all_requests_approved(self):
         """
         Return whether all requests are approved
         """
         request_prepids = self.get_request_list()
-        request_db = Database('requests')
+        request_db = Database("requests")
         requests = request_db.bulk_get(request_prepids)
-        allowed_approvals = {'approve', 'submit'}
+        allowed_approvals = {"approve", "submit"}
         for request in requests:
-            if request.get('approval') not in allowed_approvals:
+            if request.get("approval") not in allowed_approvals:
                 return False
 
         return True
@@ -138,24 +150,26 @@ class mccm(json_base):
         If there are requests that are not defined, return empty list
         """
         request_prepids = self.get_request_list()
-        request_db = Database('requests')
+        request_db = Database("requests")
         requests = request_db.bulk_get(request_prepids)
-        defined = {'define', 'approve', 'submit'}
-        if [r for r in requests if r.get('approval') not in defined]:
+        defined = {"define", "approve", "submit"}
+        if [r for r in requests if r.get("approval") not in defined]:
             # There are requests that are not defined/approved/submitted
             return []
 
-        approved = {'approve', 'submit'}
-        return [r['prepid'] for r in requests if r.get('approval') not in approved]
+        approved = {"approve", "submit"}
+        return [r["prepid"] for r in requests if r.get("approval") not in approved]
 
     def get_not_defined(self):
         """
         Get list of not defined requests
         """
         request_prepids = self.get_request_list()
-        request_db = Database('requests')
+        request_db = Database("requests")
         requests = request_db.bulk_get(request_prepids)
-        defined = {'define', 'approve', 'submit'}
-        defined_prepids = [r['prepid'] for r in requests if r.get('approval') in defined]
+        defined = {"define", "approve", "submit"}
+        defined_prepids = [
+            r["prepid"] for r in requests if r.get("approval") in defined
+        ]
         not_defined_prepids = sorted(list(set(request_prepids) - set(defined_prepids)))
         return not_defined_prepids
