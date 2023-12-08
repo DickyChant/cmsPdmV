@@ -506,6 +506,22 @@ class DeleteRequest(RESTResource):
         crdb = database('chained_requests')
         mcm_r = request(db.get(pid))
 
+        # udb = database('users')
+        current_user = mcm_r.current_user
+        # if not current_user or not udb.document_exists(current_user):
+        #     return {
+        #         "prepid": pid,
+        #         "results": False,
+        #         'message': "You (%s) are not a registered user to McM, correct this first" % current_user}
+
+        if not (current_user in mcm_r.get_actors()):
+            return {
+                "prepid": pid,
+                "results": False,
+                'message': "%s not in the list of people for notification of %s" % (current_user, pid)}
+
+
+
         if len(mcm_r.get_attribute("member_of_chain")) != 0 and mcm_r.current_user_level < 3:
             # if request has a member_of_campaign we user role to be equal or more than
             # prod_manager, so we have to do check manually and return False
